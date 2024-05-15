@@ -27,23 +27,33 @@ data:
                     route_config:
                       name: local_route
                       virtual_hosts:
-                        - name: local_service
+                        - name: local_service_1
                           domains: ["*"]
                           routes:
                             - match:
                                 prefix: "/"
                               route:
-                                cluster: service_cluster
+                                weighted_clusters:
+                                  clusters:
+                                    - name: service_cluster_1
+                                      weight: 100
                                 timeout: 0s
                     http_filters:
                       - name: envoy.filters.http.router
                         typed_config:
                           "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
       clusters:
-        - name: service_cluster
+        - name: service_cluster_1
           connect_timeout: 0.25s
           type: strict_dns
           lb_policy: round_robin
+          health_checks:
+            - timeout: 1s
+              interval: 10s
+              unhealthy_threshold: 3
+              healthy_threshold: 5
+              http_health_check:
+                path: "/health"
           load_assignment:
             cluster_name: service_cluster
             endpoints:
