@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-pod
+  template:
+    metadata:
+      labels:
+        app: test-pod
+    spec:
+      containers:
+        - name: envoy
+          image: envoyproxy/envoy:v1.26.5
+          command: ["/usr/local/bin/envoy"]
+          args: ["-c", "/etc/envoy/envoy.yaml",  "--log-level", "debug"]
+          ports:
+            - containerPort: 10000
+          volumeMounts:
+            - name: envoy-config-volume
+              mountPath: /etc/envoy
+        - name: echo-server
+          image: jmalloc/echo-server
+          ports:
+            - containerPort: 8080
+      volumes:
+        - name: envoy-config-volume
+          configMap:
+            name: envoy-config
