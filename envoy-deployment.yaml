@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: test-deployment
+  name: envoy-deployment
 spec:
   replicas: 1
   selector:
@@ -16,16 +16,12 @@ spec:
         - name: envoy
           image: envoyproxy/envoy:v1.26.5
           command: ["/usr/local/bin/envoy"]
-          args: ["-c", "/etc/envoy/envoy.yaml",  "--log-level", "debug"]
+          args: ["-c", "/etc/envoy/envoy.yaml",  "--log-level", "debug", "--service-node", "node1", "--service-cluster", "cluster1"]
           ports:
             - containerPort: 10000
           volumeMounts:
             - name: envoy-config-volume
               mountPath: /etc/envoy
-        - name: echo-server
-          image: jmalloc/echo-server
-          ports:
-            - containerPort: 8080
       volumes:
         - name: envoy-config-volume
           configMap:

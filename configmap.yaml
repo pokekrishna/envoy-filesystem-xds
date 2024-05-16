@@ -10,7 +10,12 @@ data:
         socket_address:
           address: 0.0.0.0
           port_value: 9901
-
+    dynamic_resources:
+      cds_config:
+        path_config_source:
+          path: "/etc/envoy/clusters.yaml"
+          watched_directory:
+            path: "/etc/envoy"
     static_resources:
       listeners:
         - name: listener_0
@@ -24,42 +29,57 @@ data:
                   typed_config:
                     "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
                     stat_prefix: ingress_http
-                    route_config:
-                      name: local_route
-                      virtual_hosts:
-                        - name: local_service_1
-                          domains: ["*"]
-                          routes:
-                            - match:
-                                prefix: "/"
-                              route:
-                                weighted_clusters:
-                                  clusters:
-                                    - name: service_cluster_1
-                                      weight: 100
-                                timeout: 0s
+                    rds:
+                      route_config_name: local_route
+                      config_source:
+                        path_config_source:
+                          path: "/etc/envoy/routes.yaml"
+                          watched_directory:
+                            path: "/etc/envoy"
                     http_filters:
                       - name: envoy.filters.http.router
                         typed_config:
                           "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-      clusters:
-        - name: service_cluster_1
-          connect_timeout: 0.25s
-          type: strict_dns
-          lb_policy: round_robin
-          health_checks:
-            - timeout: 1s
-              interval: 10s
-              unhealthy_threshold: 3
-              healthy_threshold: 5
-              http_health_check:
-                path: "/health"
-          load_assignment:
-            cluster_name: service_cluster
-            endpoints:
-              - lb_endpoints:
-                  - endpoint:
-                      address:
-                        socket_address:
-                          address: 127.0.0.1
-                          port_value: 8080
+
+  routes.yaml: |
+    version_info: "0"
+    resources:
+      - "@type": type.googleapis.com/envoy.config.route.v3.RouteConfiguration
+        name: local_route
+        virtual_hosts:
+          - name: local_service_1
+            domains: ["*"]
+            routes:
+              - match:
+                  prefix: "/bar"
+                route:
+                  weighted_clusters:
+                    clusters:
+                      - name: service_cluster_1
+                        weight: 100
+                  timeout: 0s
+
+  clusters.yaml: |
+    version_info: "0"
+    resources:
+      - "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+        name: service_cluster_1
+        connect_timeout: 0.25s
+        type: strict_dns
+        lb_policy: round_robin
+        health_checks:
+          - timeout: 1s
+            interval: 10s
+            unhealthy_threshold: 3
+            healthy_threshold: 5
+            http_health_check:
+              path: "/health"
+        load_assignment:
+          cluster_name: service_cluster
+          endpoints:
+            - lb_endpoints:
+                - endpoint:
+                    address:
+                      socket_address:
+                        address: stable-echo-server-service
+                        port_value: 80
