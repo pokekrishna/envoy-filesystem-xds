@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: canary-echo-server-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: canary-echo-server
+  template:
+    metadata:
+      labels:
+        app: canary-echo-server
+    spec:
+      containers:
+        - name: echo-server
+          image: ealen/echo-server
+          ports:
+            - containerPort: 80

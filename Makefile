@@ -16,3 +16,6 @@ restart-deployment:
 
 port-forward:
 	@kubectl -n test port-forward service/envoy-service 10000:80
+
+logs-envoy:
+	@kubectl -n test logs --follow  --selector app=test-pod

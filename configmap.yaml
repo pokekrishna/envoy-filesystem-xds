@@ -57,6 +57,8 @@ data:
                     clusters:
                       - name: service_cluster_1
                         weight: 100
+                      # - name: service_cluster_2
+                      #   weight: 100
                   timeout: 0s
 
   clusters.yaml: |
@@ -69,9 +71,9 @@ data:
         lb_policy: round_robin
         health_checks:
           - timeout: 1s
-            interval: 10s
-            unhealthy_threshold: 3
-            healthy_threshold: 5
+            interval: 1s
+            unhealthy_threshold: 1
+            healthy_threshold: 1
             http_health_check:
               path: "/health"
         load_assignment:
@@ -83,3 +85,43 @@ data:
                       socket_address:
                         address: stable-echo-server-service
                         port_value: 80
+      # - "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+      #   name: service_cluster_2
+      #   connect_timeout: 0.25s
+      #   type: strict_dns
+      #   lb_policy: round_robin
+      #   health_checks:
+          
+      #     # The time to wait for a health check response. If the timeout is reached the
+      #     # health check attempt will be considered a failure.
+      #     - timeout: 1s
+          
+      #       # interval between health checks
+      #       interval: 10s
+
+      #       # The number of unhealthy health checks required before a host is marked
+      #       # unhealthy.
+      #       # 
+      #       # if a host responds with a code not in expected_statuses or retriable_statuses
+      #       # this threshold is ignored and the host is considered immediately unhealthy
+      #       unhealthy_threshold: 3
+            
+      #       # The number of healthy health checks required before a host is marked
+      #       # healthy. during startup, only a single successful health check is
+      #       # required to mark a host healthy.
+      #       healthy_threshold: 5
+      #       http_health_check:
+      #         path: "/health_cluster_2"
+      #         request_headers_to_add:
+      #           - header:
+      #               key: "X-ECHO-TIME"
+      #               value: "3000"
+      #   load_assignment:
+      #     cluster_name: service_cluster
+      #     endpoints:
+      #       - lb_endpoints:
+      #           - endpoint:
+      #               address:
+      #                 socket_address:
+      #                   address: canary-echo-server-service
+      #                   port_value: 80
