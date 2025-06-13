@@ -29,6 +29,13 @@ data:
                   typed_config:
                     "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
                     stat_prefix: ingress_http
+                    # drain_timeout: 2s
+                    # common_http_protocol_options:
+                    #   max_connection_duration: "5s"
+                    access_log:
+                    - name: envoy.access_loggers.stdout
+                      typed_config:
+                        "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
                     rds:
                       route_config_name: local_route
                       config_source:
@@ -47,8 +54,18 @@ data:
       - "@type": type.googleapis.com/envoy.config.route.v3.RouteConfiguration
         name: local_route
         virtual_hosts:
+          - name: grpc_service
+            domains: ["grpc-streaming.example.com"]
+            routes:
+              - match:
+                  prefix: "/"
+                route:
+                  max_stream_duration: 
+                    max_stream_duration: 10s
+                  cluster: grpc_streaming_service
+                  timeout: 0s
           - name: local_service_1
-            domains: ["*"]
+            domains: ["foo.example.com"]
             routes:
               - match:
                   prefix: "/bar"
@@ -65,6 +82,27 @@ data:
     version_info: "0"
     resources:
       - "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+        name: grpc_streaming_service
+        connect_timeout: 0.25s
+        type: static
+        lb_policy: round_robin
+        typed_extension_protocol_options:
+          envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+            "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+            # common_http_protocol_options:
+            #   max_connection_duration: "5s"
+            explicit_http_config:
+              http2_protocol_options: {}
+        load_assignment:
+          cluster_name: grpc_streaming_service
+          endpoints:
+            - lb_endpoints:
+                - endpoint:
+                    address:
+                      socket_address:
+                        address: 10.43.1.139
+                        port_value: 80
+      - "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
         name: service_cluster_1
         connect_timeout: 0.25s
         type: strict_dns
@@ -76,7 +114,7 @@ data:
             healthy_threshold: 1
             http_health_check:
               path: "/health"
-        load_assignment:
+        load_assignment:  
           cluster_name: service_cluster
           endpoints:
             - lb_endpoints:
@@ -85,12 +123,12 @@ data:
                       socket_address:
                         address: stable-echo-server-service
                         port_value: 80
-      # - "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
-      #   name: service_cluster_2
-      #   connect_timeout: 0.25s
-      #   type: strict_dns
-      #   lb_policy: round_robin
-      #   health_checks:
+      - "@type": type.googleapis.com/envoy.config.cluster.v3.Cluster
+        name: service_cluster_2
+        connect_timeout: 0.25s
+        type: strict_dns
+        lb_policy: round_robin
+        health_checks:
           
       #     # The time to wait for a health check response. If the timeout is reached the
       #     # health check attempt will be considered a failure.
