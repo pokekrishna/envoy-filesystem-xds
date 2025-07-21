@@ -44,9 +44,51 @@ data:
                           watched_directory:
                             path: "/etc/envoy"
                     http_filters:
+                      - name: envoy.filters.http.compressor.gzip
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.compressor.v3.Compressor
+                          response_direction_config:
+                            # common_config:
+                            #   min_content_length: 100
+                            #   content_type:
+                            #   - text/html
+                            #   - application/json
+                            disable_on_etag_header: true
+                          request_direction_config:
+                            common_config:
+                              enabled:
+                                default_value: false
+                                runtime_key: request_compressor_enabled
+                          compressor_library:
+                            name: text_optimized
+                            typed_config:
+                              "@type": type.googleapis.com/envoy.extensions.compression.gzip.compressor.v3.Gzip
+                              memory_level: 3
+                              window_bits: 10
+                              compression_level: BEST_COMPRESSION
+                              compression_strategy: DEFAULT_STRATEGY
+                      - name: envoy.filters.http.compressor.brotli
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.compressor.v3.Compressor
+                          response_direction_config:
+                            disable_on_etag_header: true
+                          request_direction_config:
+                            common_config:
+                              enabled:
+                                default_value: false
+                                runtime_key: request_compressor_enabled
+                          compressor_library:
+                            name: text_optimized
+                            typed_config:
+                              "@type": type.googleapis.com/envoy.extensions.compression.brotli.compressor.v3.Brotli
+                              input_block_bits: 20 # memory usage
+                              window_bits: 15   # Window size
+                              quality: 11 # Highest compression (like gzip BEST_COMPRESSION)
+                              encoder_mode: Generic # Default strategy
                       - name: envoy.filters.http.router
                         typed_config:
                           "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+
 
   routes.yaml: |
     version_info: "0"
@@ -60,7 +102,7 @@ data:
               - match:
                   prefix: "/"
                 route:
-                  max_stream_duration: 
+                  max_stream_duration:
                     max_stream_duration: 10s
                   cluster: grpc_streaming_service
                   timeout: 0s
@@ -114,7 +156,7 @@ data:
             healthy_threshold: 1
             http_health_check:
               path: "/health"
-        load_assignment:  
+        load_assignment:
           cluster_name: service_cluster
           endpoints:
             - lb_endpoints:
@@ -129,21 +171,21 @@ data:
         type: strict_dns
         lb_policy: round_robin
         health_checks:
-          
+
       #     # The time to wait for a health check response. If the timeout is reached the
       #     # health check attempt will be considered a failure.
       #     - timeout: 1s
-          
+
       #       # interval between health checks
       #       interval: 10s
 
       #       # The number of unhealthy health checks required before a host is marked
       #       # unhealthy.
-      #       # 
+      #       #
       #       # if a host responds with a code not in expected_statuses or retriable_statuses
       #       # this threshold is ignored and the host is considered immediately unhealthy
       #       unhealthy_threshold: 3
-            
+
       #       # The number of healthy health checks required before a host is marked
       #       # healthy. during startup, only a single successful health check is
       #       # required to mark a host healthy.
